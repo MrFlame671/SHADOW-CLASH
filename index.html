@@ -1,0 +1,550 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  #game { width: 100%; background: transparent; padding: 1rem 0; }
+  #title-screen { text-align: center; padding: 1.5rem 0; }
+  #title-screen h1 { font-size: 28px; font-weight: 500; color: var(--color-text-primary); letter-spacing: 2px; }
+  #title-screen p { font-size: 13px; color: var(--color-text-secondary); margin-top: 6px; }
+  .tabs { display: flex; gap: 6px; margin: 1rem 0; border-bottom: 0.5px solid var(--color-border-tertiary); padding-bottom: 0; }
+  .tab { padding: 8px 16px; font-size: 13px; color: var(--color-text-secondary); cursor: pointer; border: 0.5px solid transparent; border-bottom: none; border-radius: var(--border-radius-md) var(--border-radius-md) 0 0; transition: all 0.15s; background: transparent; }
+  .tab.active { color: var(--color-text-primary); border-color: var(--color-border-tertiary); background: var(--color-background-primary); position: relative; bottom: -0.5px; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .fighter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 12px; }
+  .fighter-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px; cursor: pointer; transition: border-color 0.15s; }
+  .fighter-card:hover { border-color: var(--color-border-secondary); }
+  .fighter-card.selected { border: 2px solid #7F77DD; }
+  .fighter-avatar { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 10px; }
+  .fighter-name { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }
+  .fighter-title { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+  .fighter-style { font-size: 11px; margin-top: 6px; padding: 3px 8px; border-radius: 99px; display: inline-block; }
+  .badge-red { background: #FCEBEB; color: #A32D2D; }
+  .badge-purple { background: #EEEDFE; color: #3C3489; }
+  .badge-blue { background: #E6F1FB; color: #185FA5; }
+  .badge-amber { background: #FAEEDA; color: #854F0B; }
+  .badge-teal { background: #E1F5EE; color: #0F6E56; }
+  .detail-panel { margin-top: 12px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 18px; }
+  .detail-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .stat-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .stat-label { font-size: 12px; color: var(--color-text-secondary); width: 90px; flex-shrink: 0; }
+  .stat-bar { flex: 1; height: 5px; background: var(--color-background-secondary); border-radius: 99px; overflow: hidden; }
+  .stat-fill { height: 100%; border-radius: 99px; }
+  .attacks-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .attack-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px; }
+  .attack-type { font-size: 11px; color: var(--color-text-secondary); }
+  .attack-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-top: 2px; }
+  .attack-desc { font-size: 11px; color: var(--color-text-secondary); margin-top: 3px; line-height: 1.5; }
+  .story-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 16px; margin-bottom: 10px; }
+  .story-card h3 { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 6px; }
+  .story-card p { font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; }
+  .mechanics-list { margin-top: 12px; }
+  .mechanic { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px; margin-bottom: 8px; }
+  .mechanic h3 { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+  .mechanic p { font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; }
+  .battle-area { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 14px; margin-top: 12px; }
+  .fighters-vs { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+  .vs-fighter { flex: 1; text-align: center; }
+  .hp-bar-wrap { margin-top: 6px; }
+  .hp-bar { height: 8px; border-radius: 99px; background: var(--color-background-primary); overflow: hidden; }
+  .hp-fill { height: 100%; border-radius: 99px; transition: width 0.3s; }
+  .energy-wrap { margin-top: 4px; }
+  .energy-bar { height: 5px; border-radius: 99px; background: var(--color-background-primary); overflow: hidden; }
+  .energy-fill { height: 100%; border-radius: 99px; background: #7F77DD; transition: width 0.4s; }
+  .vs-text { font-size: 20px; font-weight: 500; color: var(--color-text-secondary); flex-shrink: 0; }
+  .arena-display { background: var(--color-background-primary); border-radius: var(--border-radius-md); padding: 12px; text-align: center; min-height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; margin-bottom: 12px; }
+  .combat-log { font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; }
+  .action-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
+  .action-btn { padding: 8px 4px; font-size: 12px; border: 0.5px solid var(--color-border-secondary); background: transparent; border-radius: var(--border-radius-md); cursor: pointer; color: var(--color-text-primary); transition: all 0.15s; text-align: center; }
+  .action-btn:hover { background: var(--color-background-secondary); }
+  .action-btn.special { border-color: #AFA9EC; color: #534AB7; }
+  .action-btn.special:disabled { opacity: 0.4; cursor: not-allowed; }
+  .action-btn.block { border-color: #5DCAA5; color: #0F6E56; }
+  .select-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .select-wrap label { font-size: 12px; color: var(--color-text-secondary); display: block; margin-bottom: 4px; }
+  select { width: 100%; padding: 8px 10px; font-size: 13px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-primary); color: var(--color-text-primary); }
+  .start-btn { width: 100%; padding: 10px; font-size: 14px; font-weight: 500; background: #7F77DD; color: white; border: none; border-radius: var(--border-radius-md); cursor: pointer; margin-bottom: 12px; }
+  .start-btn:hover { background: #534AB7; }
+  .chip { font-size: 11px; padding: 2px 8px; border-radius: 99px; display: inline-block; margin-right: 4px; }
+  .log-hit { color: #E24B4A; }
+  .log-special { color: #534AB7; }
+  .log-block { color: #0F6E56; }
+  .log-neutral { color: var(--color-text-secondary); }
+  .scenario-badge { font-size: 11px; padding: 3px 10px; background: var(--color-background-secondary); border-radius: 99px; color: var(--color-text-secondary); display: inline-block; margin-bottom: 8px; }
+  .energy-label { font-size: 11px; color: #7F77DD; text-align: right; }
+  .fighter-emoji-large { font-size: 42px; line-height: 1; margin-bottom: 2px; }
+  .win-banner { font-size: 18px; font-weight: 500; color: var(--color-text-primary); padding: 12px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); margin-bottom: 8px; }
+</style>
+
+<div id="game">
+  <div id="title-screen">
+    <h1>SHADOW CLASH</h1>
+    <p>El torneo entre mundos — 5 luchadores, un destino</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('roster')">Luchadores</button>
+    <button class="tab" onclick="showTab('battle')">Batalla</button>
+    <button class="tab" onclick="showTab('story')">Historia</button>
+    <button class="tab" onclick="showTab('mechanics')">Mecánicas</button>
+  </div>
+
+  <div id="roster" class="section active">
+    <div class="fighter-grid" id="fighter-grid"></div>
+    <div class="detail-panel" id="detail-panel" style="display:none;"></div>
+  </div>
+
+  <div id="battle" class="section">
+    <div class="select-pair">
+      <div class="select-wrap"><label>Tu luchador</label><select id="p1-select"></select></div>
+      <div class="select-wrap"><label>Rival</label><select id="p2-select"></select></div>
+    </div>
+    <button class="start-btn" onclick="startBattle()">Iniciar combate</button>
+    <div id="battle-ui" style="display:none;">
+      <div class="battle-area">
+        <div class="fighters-vs">
+          <div class="vs-fighter">
+            <div id="p1-name" style="font-size:13px;font-weight:500;color:var(--color-text-primary);"></div>
+            <div class="hp-bar-wrap">
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:11px;color:var(--color-text-secondary);">HP</span><span id="p1-hp-num" style="font-size:11px;color:var(--color-text-secondary);"></span></div>
+              <div class="hp-bar"><div id="p1-hp-fill" class="hp-fill" style="background:#E24B4A;width:100%;"></div></div>
+            </div>
+            <div class="energy-wrap">
+              <div style="display:flex;justify-content:space-between;"><span style="font-size:11px;color:#7F77DD;">Energía</span><span id="p1-ep-num" style="font-size:11px;color:#7F77DD;"></span></div>
+              <div class="energy-bar"><div id="p1-ep-fill" class="energy-fill" style="width:0%;"></div></div>
+            </div>
+          </div>
+          <div class="vs-text">VS</div>
+          <div class="vs-fighter">
+            <div id="p2-name" style="font-size:13px;font-weight:500;color:var(--color-text-primary);text-align:right;"></div>
+            <div class="hp-bar-wrap">
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span id="p2-hp-num" style="font-size:11px;color:var(--color-text-secondary);"></span><span style="font-size:11px;color:var(--color-text-secondary);">HP</span></div>
+              <div class="hp-bar"><div id="p2-hp-fill" class="hp-fill" style="background:#185FA5;width:100%;"></div></div>
+            </div>
+            <div class="energy-wrap">
+              <div style="display:flex;justify-content:space-between;"><span id="p2-ep-num" style="font-size:11px;color:#7F77DD;"></span><span style="font-size:11px;color:#7F77DD;">Energía</span></div>
+              <div class="energy-bar"><div id="p2-ep-fill" class="energy-fill" style="width:0%;"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="arena-display">
+          <div id="arena-anim" style="font-size:36px;display:flex;gap:20px;align-items:center;justify-content:center;"></div>
+          <div id="combat-log" class="combat-log" style="margin-top:8px;"></div>
+        </div>
+        <div class="action-buttons">
+          <button class="action-btn" onclick="doAction('weak')">Débil<br><span style="font-size:10px;color:var(--color-text-secondary);">Rápido</span></button>
+          <button class="action-btn" onclick="doAction('medium')">Medio<br><span style="font-size:10px;color:var(--color-text-secondary);">Balanceado</span></button>
+          <button class="action-btn" onclick="doAction('heavy')">Fuerte<br><span style="font-size:10px;color:var(--color-text-secondary);">Alto daño</span></button>
+          <button class="action-btn special" id="special-btn" onclick="doAction('special')">Especial<br><span style="font-size:10px;">100 EP</span></button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <button class="action-btn block" onclick="doAction('block')">Bloquear<br><span style="font-size:10px;">-70% daño</span></button>
+          <button class="action-btn" onclick="doAction('counter')" style="border-color:#EF9F27;color:#854F0B;">Contraataque<br><span style="font-size:10px;">Timing clave</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="story" class="section">
+    <div id="story-content"></div>
+  </div>
+
+  <div id="mechanics" class="section">
+    <div class="mechanics-list" id="mechanics-content"></div>
+  </div>
+</div>
+
+<script>
+const FIGHTERS = [
+  {
+    id: 'kairo',
+    name: 'Kairo',
+    title: 'El Espectro Ninja',
+    emoji: '🥷',
+    badge: 'badge-purple',
+    style: 'Sigiloso · Velocista',
+    color: '#7F77DD',
+    hp: 110,
+    speed: 95,
+    power: 65,
+    defense: 70,
+    special: 90,
+    lore: 'Último sobreviviente del clan Mugen, Kairo entrenó durante 20 años en las montañas sin nombre. Su cuerpo es capaz de fundirse con las sombras durante fracciones de segundo, creando ilusiones de velocidad que sus enemigos no logran seguir. Busca al asesino de su maestra en el torneo Shadow Clash.',
+    appearance: 'Viste de negro con reflejos índigo. Máscara que cubre la mitad inferior del rostro. Ojos violeta que brillan en la oscuridad. Katana con filo imbuido de sombra.',
+    attacks: [
+      { type: 'Débil', name: 'Corte relámpago', desc: '3 tajos ultrarrápidos. Excelente para iniciar combos.', dmg: [6,9] },
+      { type: 'Medio', name: 'Golpe de sombra', desc: 'Avanza y golpea con el mango de la katana.', dmg: [14,18] },
+      { type: 'Fuerte', name: 'Tajo del eclipse', desc: 'Golpe descendente devastador. Rompe defensas.', dmg: [24,30] },
+      { type: 'Especial', name: 'Danza de espectros', desc: 'Kairo se divide en 3 clones que atacan simultáneamente desde distintos ángulos.', dmg: [38,48] }
+    ]
+  },
+  {
+    id: 'nova',
+    name: 'NOVA-7',
+    title: 'El Cyborg Caído',
+    emoji: '🤖',
+    badge: 'badge-blue',
+    style: 'Tecnológico · Contundente',
+    color: '#378ADD',
+    hp: 130,
+    speed: 65,
+    power: 85,
+    defense: 88,
+    special: 75,
+    lore: 'Ex-soldado del Proyecto Nexus, NOVA-7 fue el prototipo más avanzado de soldado aumentado. Cuando descubrió que los experimentos se realizaban sin consentimiento en civiles, saboteó el laboratorio y desertó. Ahora sus sistemas buscan activamente neutralizar a Kronax, el director del proyecto, participante del torneo.',
+    appearance: 'Mitad humano, mitad máquina. Ojo izquierdo reemplazado por visor holográfico azul. Brazo derecho completamente robótico con cañón integrado. Pecho con paneles de titanio visibles.',
+    attacks: [
+      { type: 'Débil', name: 'Jab de titanio', desc: 'Golpe rápido con el puño mecánico. Daño constante.', dmg: [8,11] },
+      { type: 'Medio', name: 'Disparo de plasma', desc: 'Proyectil energético de rango medio.', dmg: [16,20] },
+      { type: 'Fuerte', name: 'Martillo de impacto', desc: 'Golpe al suelo que genera onda de choque. Derriba.', dmg: [26,34] },
+      { type: 'Especial', name: 'Protocolo Extinción', desc: 'Carga el cañón al 200% y dispara un rayo devastador.', dmg: [42,52] }
+    ]
+  },
+  {
+    id: 'zara',
+    name: 'Zara Omá',
+    title: 'La Guardiana Ancestral',
+    emoji: '⚔️',
+    badge: 'badge-amber',
+    style: 'Guerrera · Ancestral',
+    color: '#EF9F27',
+    hp: 140,
+    speed: 72,
+    power: 90,
+    defense: 82,
+    special: 85,
+    lore: 'Guardiana del Templo de las Tres Lunas, Zara es la última portadora del Espíritu del Leopardo. Hace 300 años su antepasada selló al demonio Vorthak en las profundidades del templo. Ahora Vorthak busca liberarse a través del torneo, y Zara ha salido del templo por primera vez para detenerlo.',
+    appearance: 'Guerrera africana de constitución imponente. Lleva armadura de ébano con grabados dorados ancestrales. Dos lanzas cortas en la espalda. Los ojos brillan con luz ámbar cuando canaliza el espíritu del leopardo.',
+    attacks: [
+      { type: 'Débil', name: 'Lanzazo ágil', desc: 'Estocada rápida que mantiene la distancia.', dmg: [7,10] },
+      { type: 'Medio', name: 'Cruce de lanzas', desc: 'Golpe en X con ambas lanzas. Amplio y equilibrado.', dmg: [15,20] },
+      { type: 'Fuerte', name: 'Pisada del templo', desc: 'Salto poderoso que aplasta y causa daño de área.', dmg: [28,36] },
+      { type: 'Especial', name: 'Furia del leopardo', desc: 'El espíritu ancestral posee a Zara: ataca en frenesí durante 3 segundos.', dmg: [44,55] }
+    ]
+  },
+  {
+    id: 'roko',
+    name: 'Roko',
+    title: 'El Perro de la Calle',
+    emoji: '👊',
+    badge: 'badge-red',
+    style: 'Callejero · Impredecible',
+    color: '#D85A30',
+    hp: 120,
+    speed: 82,
+    power: 78,
+    defense: 60,
+    special: 80,
+    lore: 'Criado en los barrios bajos de Ciudad Ferro, Roko aprendió a pelear antes de aprender a leer. Nunca tuvo maestra ni dojo: sus maestros fueron las calles, los callejones y la necesidad. Entró al torneo para ganar el premio y sacar a su hermana menor de las garras de la facción criminal Los Seis Hierros.',
+    appearance: 'Joven latino de 22 años. Chaqueta bomber rota, manos vendadas con cinta negra y roja. Cicatrices en el mentón. Cabello oscuro rapado a los lados. Siempre mastica un palillo.',
+    attacks: [
+      { type: 'Débil', name: 'Jab de calle', desc: 'Golpe de boxeo rápido. Combo infinito si se conecta.', dmg: [5,8] },
+      { type: 'Medio', name: 'Rodillazo brutal', desc: 'Agarra al rival y clava la rodilla en el torso.', dmg: [13,18] },
+      { type: 'Fuerte', name: 'Cabezazo de hierro', desc: 'Sin técnica, pura brutalidad. Aturde al rival.', dmg: [22,30] },
+      { type: 'Especial', name: 'Modo Supervivencia', desc: 'Roko entra en furia: daño aumentado 50% y recupera 15 HP.', dmg: [35,45] }
+    ]
+  },
+  {
+    id: 'veil',
+    name: 'Veil',
+    title: 'La Entidad del Velo',
+    emoji: '🌀',
+    badge: 'badge-teal',
+    style: 'Mágico · Imprevisible',
+    color: '#1D9E75',
+    hp: 100,
+    speed: 78,
+    power: 88,
+    defense: 55,
+    special: 100,
+    lore: 'Veil no era humana hasta hace un año. Era una entidad del plano astral que quedó atrapada en un cuerpo humano tras un experimento fallido de magia interdimensional. Ahora busca la puerta que la devuelva a su plano, y la llave es el corazón del torneo: el artefacto Axis Umbra, custodiado por el campeón vigente.',
+    appearance: 'Figura andrógina envuelta en tela que parece moverse sin viento. Piel de tono grisáceo con patrones luminosos teal. Ojos completamente blancos. Flota a centímetros del suelo.',
+    attacks: [
+      { type: 'Débil', name: 'Toque etéreo', desc: 'Golpe de energía astral. Pasa parcialmente a través de defensas.', dmg: [7,9] },
+      { type: 'Medio', name: 'Onda del velo', desc: 'Proyectil de energía interdimensional. Curva en el aire.', dmg: [14,19] },
+      { type: 'Fuerte', name: 'Colapso dimensional', desc: 'Crea un pequeño agujero negro de impacto. Rompe todo escudo.', dmg: [26,34] },
+      { type: 'Especial', name: 'Resonancia del Axis', desc: 'Invoca el poder del Axis Umbra: daño masivo en área.', dmg: [48,60] }
+    ]
+  }
+];
+
+const SCENARIOS = [
+  { name: 'Templo de las Lunas', desc: 'Las columnas caen al recibir impactos fuertes', effect: 'Las ruinas desvían proyectiles' },
+  { name: 'Ciudad Ferro', desc: 'El entorno industrial puede usarse como arma', effect: 'Las chispas dañan a ambos luchadores' },
+  { name: 'Plano Astral', desc: 'La gravedad cambia impredeciblemente', effect: 'Los saltos alcanzan el doble de altura' },
+  { name: 'Arena Nexus', desc: 'Drones del Proyecto Nexus interfieren', effect: 'Los drones pueden ser destruidos para obtener energía' },
+  { name: 'Valle de las Sombras', desc: 'Oscuridad que oculta movimientos', effect: 'Los ataques débiles son invisibles hasta el impacto' }
+];
+
+const STORY_ARCS = [
+  { ch: 'Prólogo', title: 'El edicto del Axis Umbra', text: 'Una voz que resuena en todos los planos anuncia el comienzo del torneo Shadow Clash. El artefacto conocido como Axis Umbra —capaz de reescribir la realidad— será entregado al último campeón en pie. Cinco almas, cinco historias, una sola razón para luchar.' },
+  { ch: 'Capítulo 1', title: 'El rastro del clan Mugen', text: 'Kairo sigue la pista de un asesino enmascarado que participó en la masacre de su clan. Los registros del torneo revelan su nombre: Kronax. Kairo y NOVA-7 se cruzan en la primera ronda, descubriendo que ambos buscan al mismo hombre.' },
+  { ch: 'Capítulo 2', title: 'La primera luna sangra', text: 'Zara Omá detecta que las paredes entre el plano mortal y el abismo de Vorthak se están debilitando. El torneo en sí es la trampa: cada combate libera energía que alimenta el sello roto. Zara debe llegar a la final o todo estará perdido.' },
+  { ch: 'Capítulo 3', title: 'El precio de las calles', text: 'Roko avanza en el torneo golpe a golpe, sin elegancia y sin plan. Cuando descubre que Los Seis Hierros enviaron a un asesino disfrazado de competidor para silenciarlo, su lucha personal se convierte en una batalla por su vida.' },
+  { ch: 'Capítulo 4', title: 'La llave y la puerta', text: 'Veil ha estudiado el Axis Umbra en el plano astral durante siglos. Sabe que el artefacto no solo puede abrirle la puerta a casa: en manos equivocadas, podría borrar todos los planos de existencia. Veil lucha no para quedárselo, sino para destruirlo.' },
+  { ch: 'Final', title: 'El último combate', text: 'Los cinco luchadores convergen en el corazón del torneo. Kronax revela que es el propio director de Nexus, que construyó el torneo como experimento de extracción de datos de combate. La verdadera batalla comienza: no entre ellos, sino contra el sistema que los manipuló a todos. La alianza improbable de Kairo, NOVA-7, Zara, Roko y Veil decide el destino de todos los mundos.' }
+];
+
+const MECHANICS = [
+  { title: 'Sistema de energía (EP)', desc: 'Cada combatiente tiene 0–100 EP. Los ataques débiles generan 8 EP. Los medios generan 5 EP. Los fuertes cuestan 5 EP pero pueden romper defensas. El ataque especial cuesta 100 EP. Bloquear no genera EP pero reduce el daño un 70%.' },
+  { title: 'Combos', desc: 'Encadenar 3 ataques débiles seguidos activa el "Combo Impulso": el siguiente ataque medio hace daño doble. Cada personaje tiene combos únicos que desbloquean animaciones especiales y bonificaciones de daño.' },
+  { title: 'Bloqueo y rotura de escudo', desc: 'El bloqueo reduce el daño entrante un 70%. Sin embargo, los ataques fuertes y especiales rompen el bloqueo e imponen 2 turnos de aturdimiento. El bloqueo perfecto (timing exacto) deflecta el 100% del daño.' },
+  { title: 'Contraataque', desc: 'Si el jugador presiona "contraataque" en el mismo instante que el rival ataca, ejecuta un contraataque que hace el doble del daño del ataque recibido. Ventana de 0.3 segundos. Habilidad de alto riesgo/recompensa.' },
+  { title: 'Escenarios interactivos', desc: 'Cada arena tiene 2–3 elementos dinámicos que pueden activarse estratégicamente: columnas que caen, corrientes eléctricas, portales dimensionales. Los jugadores con bajo HP pueden usar el entorno para recuperar ventaja.' },
+  { title: 'Habilidades pasivas únicas', desc: 'Kairo: invisible por 0.5s al esquivar. NOVA-7: escudo tecnológico absorbe el primer golpe fuerte. Zara: regenera 3 HP cada turno al tener menos de 30 HP. Roko: el daño aumenta 20% con menos de 40 HP. Veil: sus ataques ignoran el 25% de la defensa rival.' }
+];
+
+let battleState = null;
+
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['roster','battle','story','mechanics'][i] === id));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function renderRoster() {
+  const grid = document.getElementById('fighter-grid');
+  grid.innerHTML = FIGHTERS.map(f => `
+    <div class="fighter-card" onclick="showDetail('${f.id}')" id="card-${f.id}">
+      <div class="fighter-avatar" style="background:${f.color}22;">${f.emoji}</div>
+      <div class="fighter-name">${f.name}</div>
+      <div class="fighter-title">${f.title}</div>
+      <span class="fighter-style chip ${f.badge}">${f.style}</span>
+    </div>
+  `).join('');
+}
+
+function showDetail(id) {
+  document.querySelectorAll('.fighter-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('card-'+id).classList.add('selected');
+  const f = FIGHTERS.find(x => x.id === id);
+  const panel = document.getElementById('detail-panel');
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div class="detail-header">
+      <div class="fighter-avatar" style="background:${f.color}22;width:64px;height:64px;font-size:32px;">${f.emoji}</div>
+      <div>
+        <div style="font-size:18px;font-weight:500;color:var(--color-text-primary);">${f.name}</div>
+        <div style="font-size:13px;color:var(--color-text-secondary);">${f.title}</div>
+        <span class="chip ${f.badge}" style="margin-top:4px;">${f.style}</span>
+      </div>
+    </div>
+    <div style="font-size:13px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:12px;">${f.lore}</div>
+    <div style="font-size:12px;color:var(--color-text-secondary);font-style:italic;margin-bottom:12px;">Apariencia: ${f.appearance}</div>
+    ${[['HP','hp',f.hp,140,f.color],['Velocidad','sp',f.speed,100,'#EF9F27'],['Poder','pw',f.power,100,'#E24B4A'],['Defensa','df',f.defense,100,'#1D9E75'],['Especial','sc',f.special,100,'#7F77DD']].map(([l,,v,max,c]) => `
+      <div class="stat-row">
+        <span class="stat-label">${l}</span>
+        <div class="stat-bar"><div class="stat-fill" style="width:${Math.round(v/max*100)}%;background:${c};"></div></div>
+        <span style="font-size:12px;color:var(--color-text-secondary);width:28px;text-align:right;">${v}</span>
+      </div>`).join('')}
+    <div class="attacks-grid">
+      ${f.attacks.map(a => `<div class="attack-card">
+        <div class="attack-type">${a.type}</div>
+        <div class="attack-name">${a.name}</div>
+        <div class="attack-desc">${a.desc}</div>
+        <div style="font-size:11px;color:${f.color};margin-top:4px;">DMG: ${a.dmg[0]}–${a.dmg[1]}</div>
+      </div>`).join('')}
+    </div>
+  `;
+}
+
+function renderSelects() {
+  ['p1-select','p2-select'].forEach((sid,i) => {
+    const sel = document.getElementById(sid);
+    sel.innerHTML = FIGHTERS.map((f,j) => `<option value="${f.id}" ${(i===0&&j===0)||(i===1&&j===1)?'selected':''}>${f.emoji} ${f.name} — ${f.title}</option>`).join('');
+  });
+}
+
+function startBattle() {
+  const f1id = document.getElementById('p1-select').value;
+  const f2id = document.getElementById('p2-select').value;
+  const f1 = FIGHTERS.find(x => x.id === f1id);
+  const f2 = FIGHTERS.find(x => x.id === f2id);
+  const sc = SCENARIOS[Math.floor(Math.random()*SCENARIOS.length)];
+  battleState = {
+    p1: { ...f1, curHp: f1.hp, ep: 0, blocking: false },
+    p2: { ...f2, curHp: f2.hp, ep: 0, blocking: false },
+    scenario: sc,
+    log: [],
+    over: false,
+    comboCount: 0
+  };
+  document.getElementById('battle-ui').style.display = 'block';
+  document.querySelector('.start-btn').textContent = 'Nuevo combate';
+  updateBattleUI();
+  addLog(`🏟️ Arena: ${sc.name}. ${sc.effect}.`, 'log-neutral');
+  addLog(`¡${f1.name} vs ${f2.name}! ¡Que comience la batalla!`, 'log-neutral');
+}
+
+function updateBattleUI() {
+  if (!battleState) return;
+  const { p1, p2 } = battleState;
+  document.getElementById('p1-name').textContent = p1.emoji + ' ' + p1.name;
+  document.getElementById('p2-name').textContent = p2.name + ' ' + p2.emoji;
+  document.getElementById('p1-hp-num').textContent = Math.max(0,Math.round(p1.curHp)) + '/' + p1.hp;
+  document.getElementById('p2-hp-num').textContent = Math.max(0,Math.round(p2.curHp)) + '/' + p2.hp;
+  document.getElementById('p1-hp-fill').style.width = Math.max(0,p1.curHp/p1.hp*100) + '%';
+  document.getElementById('p2-hp-fill').style.width = Math.max(0,p2.curHp/p2.hp*100) + '%';
+  document.getElementById('p1-ep-num').textContent = Math.round(p1.ep) + '/100 EP';
+  document.getElementById('p2-ep-num').textContent = Math.round(p2.ep) + '/100 EP';
+  document.getElementById('p1-ep-fill').style.width = p1.ep + '%';
+  document.getElementById('p2-ep-fill').style.width = p2.ep + '%';
+  const specBtn = document.getElementById('special-btn');
+  specBtn.disabled = battleState.p1.ep < 100;
+  const anim = document.getElementById('arena-anim');
+  anim.innerHTML = `<span style="font-size:42px;">${p1.emoji}</span><span style="font-size:20px;color:var(--color-text-secondary);">⚡</span><span style="font-size:42px;">${p2.emoji}</span>`;
+}
+
+function addLog(msg, cls) {
+  const log = document.getElementById('combat-log');
+  log.innerHTML = `<span class="${cls}">${msg}</span>`;
+}
+
+function rand(a, b) { return Math.round(a + Math.random() * (b - a)); }
+
+function doAction(type) {
+  if (!battleState || battleState.over) return;
+  const { p1, p2 } = battleState;
+  const atk = p1.attacks.find((a,i) => ['weak','medium','heavy','special'][i] === type || (type==='weak'&&i===0)||(type==='medium'&&i===1)||(type==='heavy'&&i===2)||(type==='special'&&i===3));
+  const atkObj = type === 'block' ? null : type === 'counter' ? null : p1.attacks[['weak','medium','heavy','special'].indexOf(type)];
+
+  if (type === 'block') {
+    p1.blocking = true;
+    addLog(`🛡️ ${p1.name} adopta posición defensiva.`, 'log-block');
+    enemyTurn();
+    p1.blocking = false;
+    return;
+  }
+
+  if (type === 'counter') {
+    const hit = Math.random() < 0.4;
+    if (hit) {
+      const dmg = rand(12, 22);
+      p2.curHp = Math.max(0, p2.curHp - dmg);
+      p1.ep = Math.min(100, p1.ep + 10);
+      addLog(`⚡ ¡CONTRAATAQUE! ${p1.name} devuelve el golpe por ${dmg} de daño!`, 'log-special');
+    } else {
+      addLog(`❌ El contraataque falló — el rival no atacó en ese momento.`, 'log-hit');
+      enemyTurn();
+    }
+    checkWin();
+    updateBattleUI();
+    return;
+  }
+
+  if (type === 'special' && p1.ep < 100) return;
+
+  let dmg = 0;
+  let epGain = 0;
+  let blocked = p2.blocking;
+
+  if (type === 'weak') {
+    dmg = rand(atkObj.dmg[0], atkObj.dmg[1]);
+    epGain = 8;
+    battleState.comboCount++;
+    const comboBonus = battleState.comboCount >= 3 ? ' 🔥 COMBO x3!' : '';
+    if (battleState.comboCount >= 3) { dmg = Math.round(dmg * 1.4); battleState.comboCount = 0; }
+    addLog(`${p1.emoji} ${p1.name} usa "${atkObj.name}" — ${dmg} daño.${comboBonus}`, 'log-hit');
+  } else if (type === 'medium') {
+    dmg = rand(atkObj.dmg[0], atkObj.dmg[1]);
+    epGain = 5;
+    battleState.comboCount = 0;
+    addLog(`${p1.emoji} ${p1.name} usa "${atkObj.name}" — ${dmg} daño.`, 'log-hit');
+  } else if (type === 'heavy') {
+    dmg = rand(atkObj.dmg[0], atkObj.dmg[1]);
+    epGain = -5;
+    blocked = false;
+    battleState.comboCount = 0;
+    addLog(`💥 ${p1.name} usa "${atkObj.name}" — ¡ROMPE DEFENSA! ${dmg} daño.`, 'log-hit');
+  } else if (type === 'special') {
+    dmg = rand(atkObj.dmg[0], atkObj.dmg[1]);
+    p1.ep = 0;
+    blocked = false;
+    battleState.comboCount = 0;
+    addLog(`✨ ¡${p1.name} activa "${atkObj.name}"! — ${dmg} DAÑO MASIVO!`, 'log-special');
+  }
+
+  if (blocked && type !== 'heavy' && type !== 'special') dmg = Math.round(dmg * 0.3);
+  if (p1.id === 'roko' && p1.curHp < 40) dmg = Math.round(dmg * 1.2);
+  if (p1.id === 'veil') dmg = Math.round(dmg * 1.25);
+
+  p2.curHp = Math.max(0, p2.curHp - dmg);
+  p1.ep = Math.min(100, p1.ep + Math.max(0, epGain));
+
+  if (!checkWin()) enemyTurn();
+  updateBattleUI();
+}
+
+function enemyTurn() {
+  if (!battleState || battleState.over) return;
+  const { p1, p2 } = battleState;
+  const actions = ['weak','medium','heavy'];
+  if (p2.ep >= 100) actions.push('special');
+  const choice = actions[Math.floor(Math.random()*actions.length)];
+  const idx = ['weak','medium','heavy','special'].indexOf(choice);
+  const atk = p2.attacks[idx];
+  let dmg = rand(atk.dmg[0], atk.dmg[1]);
+  if (p1.blocking) dmg = Math.round(dmg * 0.3);
+  if (p2.id === 'roko' && p2.curHp < 40) dmg = Math.round(dmg * 1.2);
+  if (p2.id === 'veil') dmg = Math.round(dmg * 1.25);
+  p1.curHp = Math.max(0, p1.curHp - dmg);
+  p2.ep = Math.min(100, p2.ep + (choice === 'weak' ? 8 : choice === 'medium' ? 5 : choice === 'special' ? 0 : -5));
+  if (choice === 'special') p2.ep = 0;
+  const tag = p1.blocking ? ' (bloqueado parcialmente)' : '';
+  setTimeout(() => addLog(`${p2.emoji} ${p2.name} contraataca con "${atk.name}" — ${dmg} daño.${tag}`, 'log-neutral'), 200);
+  if (p2.id === 'zara' && p2.curHp < 30) { p2.curHp = Math.min(p2.hp, p2.curHp + 3); }
+  if (p2.id === 'roko' && choice === 'special') { p2.curHp = Math.min(p2.hp, p2.curHp + 15); }
+  checkWin();
+}
+
+function checkWin() {
+  if (!battleState) return false;
+  const { p1, p2 } = battleState;
+  if (p2.curHp <= 0) {
+    battleState.over = true;
+    setTimeout(() => {
+      document.getElementById('arena-anim').innerHTML = `<span class="win-banner">🏆 ¡${p1.name} gana! KO</span>`;
+      addLog(`¡${p1.name} es el vencedor! ${p2.name} ha caído.`, 'log-special');
+    }, 400);
+    return true;
+  }
+  if (p1.curHp <= 0) {
+    battleState.over = true;
+    setTimeout(() => {
+      document.getElementById('arena-anim').innerHTML = `<span class="win-banner">💀 ${p1.name} ha caído. ¡${p2.name} gana!</span>`;
+      addLog(`${p2.name} es el vencedor. Intenta de nuevo.`, 'log-hit');
+    }, 400);
+    return true;
+  }
+  return false;
+}
+
+function renderStory() {
+  document.getElementById('story-content').innerHTML = `
+    <div style="margin-bottom:12px;">
+      <div style="font-size:13px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:12px;">En un mundo donde los planos de la existencia convergen, cinco guerreros son convocados por el Axis Umbra — un artefacto cuyo poder puede remodelar o destruir la realidad misma. El torneo Shadow Clash es el escenario, pero la verdadera batalla es por el alma de todos los mundos.</div>
+    </div>
+    ${STORY_ARCS.map(a => `<div class="story-card">
+      <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px;">${a.ch}</div>
+      <h3>${a.title}</h3>
+      <p>${a.text}</p>
+    </div>`).join('')}
+  `;
+}
+
+function renderMechanics() {
+  document.getElementById('mechanics-content').innerHTML = `
+    <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:12px;line-height:1.6;">Sistema de combate diseñado para requerir habilidad, timing y conocimiento profundo de cada personaje.</div>
+    ${MECHANICS.map(m => `<div class="mechanic"><h3>${m.title}</h3><p>${m.desc}</p></div>`).join('')}
+    <div style="margin-top:12px;">
+      <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:8px;">Escenarios interactivos</div>
+      ${SCENARIOS.map(s => `<div class="mechanic"><h3>${s.name}</h3><p>${s.desc}. <em>${s.effect}.</em></p></div>`).join('')}
+    </div>
+  `;
+}
+
+renderRoster();
+renderSelects();
+renderStory();
+renderMechanics();
+</script>
